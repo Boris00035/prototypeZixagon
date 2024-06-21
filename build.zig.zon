@@ -1,0 +1,18 @@
+.{
+    .name = "mach-glfw-vulkan-example",
+    .version = "0.0.0",
+    .minimum_zig_version = "0.12.0-dev.2063+804cee3b9",
+    .dependencies = .{
+        .@"mach-glfw" = .{
+            .url = "https://pkg.machengine.org/mach-glfw/1a9a03399058fd83f7fbb597f3f8304007ff6a3c.tar.gz",
+            .hash = "1220b4d58ec6cf53abfd8d7547d39afb9bffa41822d4d58f52625230466e51cc93bb",
+        },
+        .@"vulkan-zig-generated" = .{
+            .url = "https://pkg.machengine.org/vulkan-zig-generated/78b3c3838ffcb64d537b4af340c9d3fcc41944ce.tar.gz",
+            .hash = "1220c4a2a02e0bd81827225deea58b18f5ea9373cf932c073b977469e298eef1f54f",
+        },
+    },
+    .paths = .{
+        "",
+    },
+}
