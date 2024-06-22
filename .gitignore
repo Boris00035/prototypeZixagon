@@ -7,3 +7,4 @@ zigMachCompiler
 .zig-cache
 ~
 .vscode
+zig-out
