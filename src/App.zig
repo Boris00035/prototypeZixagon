@@ -90,7 +90,7 @@ fn tick(core: *mach.Core.Mod, game: *Mod) !void {
     defer encoder.release();
 
     // Begin render pass
-    const sky_blue_background = gpu.Color{ .r = 0, .g = 0, .b = 0, .a = 0 };
+    const sky_blue_background = gpu.Color{ .r = 252.0 / 255.0, .g = 148.0 / 255.0, .b = 175.0 / 255.0, .a = 0 };
     const color_attachments = [_]gpu.RenderPassColorAttachment{.{
         .view = back_buffer_view,
         .clear_value = sky_blue_background,
