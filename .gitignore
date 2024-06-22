@@ -4,3 +4,6 @@ shaders/vert.spv
 
 .config
 zigMachCompiler
+.zig-cache
+~
+.vscode
