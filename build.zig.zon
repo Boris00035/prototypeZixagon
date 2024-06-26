@@ -15,10 +15,9 @@
     // Once all dependencies are fetched, `zig build` no longer requires
     // internet connectivity.
     .dependencies = .{
-
         .mach_glfw = .{
-        .url = "https://pkg.machengine.org/mach-glfw/8da44b719e345097664ff2e0a7620474eb11db5f.tar.gz",
-        .hash = "1220e5343c2fe2a490aa90dc52d92fd34ebfd7d0ffc7d246dd4720bb5c339ead4d7b",
+            .url = "https://pkg.machengine.org/mach-glfw/8da44b719e345097664ff2e0a7620474eb11db5f.tar.gz",
+            .hash = "1220e5343c2fe2a490aa90dc52d92fd34ebfd7d0ffc7d246dd4720bb5c339ead4d7b",
         },
 
         // See `zig fetch --save <url>` for a command-line interface for adding dependencies.
@@ -49,6 +48,10 @@
         //    // actually used.
         //    .lazy = false,
         //},
+        .zigglgen = .{
+            .url = "https://github.com/castholm/zigglgen/releases/download/v0.2.3/zigglgen.tar.gz",
+            .hash = "1220f4188a5e1bdbb15fd50e9ea322c0721384eeba9bc077e4179b0b0eeaa7fe4ad9",
+        },
     },
 
     // Specifies the set of files and directories that are included in this package.
@@ -67,6 +70,4 @@
         //"LICENSE",
         //"README.md",
     },
-
-
 }
