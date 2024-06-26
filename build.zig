@@ -89,14 +89,10 @@ pub fn build(b: *std.Build) void {
     test_step.dependOn(&run_lib_unit_tests.step);
     test_step.dependOn(&run_exe_unit_tests.step);
 
-    // Add Mach to our library and executable
-    const mach_dep = b.dependency("mach", .{
+    // Use mach-glfw
+    const glfw_dep = b.dependency("mach_glfw", .{
         .target = target,
         .optimize = optimize,
     });
-    lib.root_module.addImport("mach", mach_dep.module("mach"));
-    exe.root_module.addImport("mach", mach_dep.module("mach"));
-
-    @import("mach").link(mach_dep.builder, exe);
+    exe.root_module.addImport("mach-glfw", glfw_dep.module("mach-glfw"));
 }
-

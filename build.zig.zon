@@ -15,11 +15,50 @@
     // Once all dependencies are fetched, `zig build` no longer requires
     // internet connectivity.
     .dependencies = .{
-        .mach = .{
-            .url = "https://pkg.machengine.org/mach/b72f0e11b6d292c2b60789359a61f7ee6d7dc371.tar.gz",
-            .hash = "122015e1dac4afaf275f7f2adde3814e6a27f5799cbef96bb487ee305f7e33f4dca3",
+
+        .mach_glfw = .{
+        .url = "https://pkg.machengine.org/mach-glfw/8da44b719e345097664ff2e0a7620474eb11db5f.tar.gz",
+        .hash = "1220e5343c2fe2a490aa90dc52d92fd34ebfd7d0ffc7d246dd4720bb5c339ead4d7b",
         },
+
+        // See `zig fetch --save <url>` for a command-line interface for adding dependencies.
+        //.example = .{
+        //    // When updating this field to a new URL, be sure to delete the corresponding
+        //    // `hash`, otherwise you are communicating that you expect to find the old hash at
+        //    // the new URL.
+        //    .url = "https://example.com/foo.tar.gz",
+        //
+        //    // This is computed from the file contents of the directory of files that is
+        //    // obtained after fetching `url` and applying the inclusion rules given by
+        //    // `paths`.
+        //    //
+        //    // This field is the source of truth; packages do not come from a `url`; they
+        //    // come from a `hash`. `url` is just one of many possible mirrors for how to
+        //    // obtain a package matching this `hash`.
+        //    //
+        //    // Uses the [multihash](https://multiformats.io/multihash/) format.
+        //    .hash = "...",
+        //
+        //    // When this is provided, the package is found in a directory relative to the
+        //    // build root. In this case the package's hash is irrelevant and therefore not
+        //    // computed. This field and `url` are mutually exclusive.
+        //    .path = "foo",
+
+        //    // When this is set to `true`, a package is declared to be lazily
+        //    // fetched. This makes the dependency only get fetched if it is
+        //    // actually used.
+        //    .lazy = false,
+        //},
     },
+
+    // Specifies the set of files and directories that are included in this package.
+    // Only files and directories listed here are included in the `hash` that
+    // is computed for this package. Only files listed here will remain on disk
+    // when using the zig package manager. As a rule of thumb, one should list
+    // files required for compilation plus any license(s).
+    // Paths are relative to the build root. Use the empty string (`""`) to refer to
+    // the build root itself.
+    // A directory listed here means that all files within, recursively, are included.
     .paths = .{
         "build.zig",
         "build.zig.zon",
@@ -28,4 +67,6 @@
         //"LICENSE",
         //"README.md",
     },
+
+
 }
