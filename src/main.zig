@@ -15,12 +15,18 @@ var gl_procs: gl.ProcTable = undefined;
 const hexagon_mesh = struct {
     // zig fmt: off
     const vertices = [_]Vertex{
-        .{ .position = .{  0    , -1   }, .color = .{ 0, 1, 1 } },
-        .{ .position = .{ -0.866, -0.5 }, .color = .{ 0, 0, 1 } },
-        .{ .position = .{  0.866, -0.5 }, .color = .{ 0, 1, 0 } },
-        .{ .position = .{ -0.866,  0.5 }, .color = .{ 1, 0, 1 } },
-        .{ .position = .{  0.866,  0.5 }, .color = .{ 1, 1, 0 } },
-        .{ .position = .{  0    ,  1   }, .color = .{ 1, 0, 0 } },
+        // .{ .position = .{ -1  ,  0     }, .color = .{ 0, 1, 1 } },
+        // .{ .position = .{ -0.5, -0.866 }, .color = .{ 0, 0, 1 } },
+        // .{ .position = .{ -0.5,  0.866 }, .color = .{ 0, 1, 0 } },
+        // .{ .position = .{  0.5, -0.866 }, .color = .{ 1, 0, 1 } },
+        // .{ .position = .{  0.5,  0.866 }, .color = .{ 1, 1, 0 } },
+        // .{ .position = .{  1  ,  0     }, .color = .{ 1, 0, 0 } },
+        .{ .position = .{ -1  ,  0     }, .color = .{ 0, 0, 1 } },
+        .{ .position = .{ -0.5, -0.866 }, .color = .{ 0, 0, 1 } },
+        .{ .position = .{ -0.5,  0.866 }, .color = .{ 0, 0, 1 } },
+        .{ .position = .{  0.5, -0.866 }, .color = .{ 0, 0, 1 } },
+        .{ .position = .{  0.5,  0.866 }, .color = .{ 0, 0, 1 } },
+        .{ .position = .{  1  ,  0     }, .color = .{ 0, 0, 1 } },
     };
     // zig fmt: on
 
@@ -51,6 +57,7 @@ pub fn main() !void {
 
     // Create our window, specifying that we want to use OpenGL.
     const window = glfw.Window.create(640, 480, "mach-glfw + OpenGL", null, null, .{
+        .samples = 4,
         .context_version_major = gl.info.version_major,
         .context_version_minor = gl.info.version_minor,
         .opengl_profile = .opengl_core_profile,
@@ -89,6 +96,8 @@ pub fn main() !void {
         \\// Angle of the object we're drawing, in radians.
         \\uniform float u_Angle;
         \\
+        \\uniform float u_verplaatsen;
+        \\
         \\// Vertex position and color as defined in the mesh.
         \\in vec4 a_Position;
         \\in vec4 a_Color;
@@ -98,14 +107,14 @@ pub fn main() !void {
         \\
         \\void main() {
         \\    // Account for the window's aspect ratio. We want a 1:1 width/height ratio.
-        \\    float scaleX = min(u_FramebufferSize.y / u_FramebufferSize.x, 1);
-        \\    float scaleY = min(u_FramebufferSize.x / u_FramebufferSize.y, 1);
+        \\    float scaleX = min(u_FramebufferSize.y / u_FramebufferSize.x, 1) / 2;
+        \\    float scaleY = min(u_FramebufferSize.x / u_FramebufferSize.y, 1) / 2;
         \\
         \\    float s = sin(u_Angle);
         \\    float c = cos(u_Angle);
         \\
         \\    gl_Position = vec4(
-        \\        (a_Position.x * c + a_Position.y * -s) * scaleX,
+        \\        (a_Position.x * c + a_Position.y * -s + u_verplaatsen) * scaleX ,
         \\        (a_Position.x * s + a_Position.y * c) * scaleY,
         \\        a_Position.zw
         \\    ) * vec4(0.875, 0.875, 1, 1); // Shrink the object slightly to fit the window.
@@ -190,6 +199,7 @@ pub fn main() !void {
 
     const framebuffer_size_uniform = gl.GetUniformLocation(program, "u_FramebufferSize");
     const angle_uniform = gl.GetUniformLocation(program, "u_Angle");
+    const verplaatsen = gl.GetUniformLocation(program, "u_verplaatsen");
 
     // Vertex Array Object (VAO), remembers instructions for how vertex data is laid out in memory.
     // Using VAOs is strictly required in modern OpenGL.
@@ -283,13 +293,18 @@ pub fn main() !void {
             gl.Uniform2f(framebuffer_size_uniform, @floatFromInt(framebuffer_size.width), @floatFromInt(framebuffer_size.height));
 
             // Rotate the hexagon clockwise at a rate of one complete turn per minute.
-            const seconds = @as(f32, @floatFromInt(timer.read())) / std.time.ns_per_s;
-            gl.Uniform1f(angle_uniform, seconds / 60 * -std.math.tau);
+            _ = @as(f32, @floatFromInt(timer.read())) / std.time.ns_per_s;
+            // const seconds = @as(f32, @floatFromInt(timer.read())) / std.time.ns_per_s;
+            // gl.Uniform1f(angle_uniform, seconds / 60 * -std.math.tau);
+            gl.Uniform1f(angle_uniform, 0);
 
             gl.BindVertexArray(vao);
             defer gl.BindVertexArray(0);
 
             // Draw the hexagon!
+            gl.Uniform1f(verplaatsen, 0);
+            gl.DrawElements(gl.TRIANGLES, hexagon_mesh.indices.len, gl.UNSIGNED_BYTE, 0);
+            gl.Uniform1f(verplaatsen, 2);
             gl.DrawElements(gl.TRIANGLES, hexagon_mesh.indices.len, gl.UNSIGNED_BYTE, 0);
         }
 
