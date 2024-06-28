@@ -2,6 +2,8 @@ const std = @import("std");
 const glfw = @import("mach-glfw");
 const gl = @import("gl");
 
+const Allocator = std.mem.Allocator;
+
 const glfw_log = std.log.scoped(.glfw);
 const gl_log = std.log.scoped(.gl);
 
@@ -12,15 +14,14 @@ fn logGLFWError(error_code: glfw.ErrorCode, description: [:0]const u8) void {
 /// Procedure table that will hold loaded OpenGL functions.
 var gl_procs: gl.ProcTable = undefined;
 
-const hexagon_mesh = struct {
+const cartesianCoordinate = [2]f32;
+
+// HECS coordinate system
+const hexagonalCordinate = [3]f32;
+
+const hexagonMesh = struct {
     // zig fmt: off
     const vertices = [_]Vertex{
-        // .{ .position = .{ -1  ,  0     }, .color = .{ 0, 1, 1 } },
-        // .{ .position = .{ -0.5, -0.866 }, .color = .{ 0, 0, 1 } },
-        // .{ .position = .{ -0.5,  0.866 }, .color = .{ 0, 1, 0 } },
-        // .{ .position = .{  0.5, -0.866 }, .color = .{ 1, 0, 1 } },
-        // .{ .position = .{  0.5,  0.866 }, .color = .{ 1, 1, 0 } },
-        // .{ .position = .{  1  ,  0     }, .color = .{ 1, 0, 0 } },
         .{ .position = .{ -1  ,  0     }, .color = .{ 0, 0, 1 } },
         .{ .position = .{ -0.5, -0.866 }, .color = .{ 0, 0, 1 } },
         .{ .position = .{ -0.5,  0.866 }, .color = .{ 0, 0, 1 } },
@@ -29,7 +30,6 @@ const hexagon_mesh = struct {
         .{ .position = .{  1  ,  0     }, .color = .{ 0, 0, 1 } },
     };
     // zig fmt: on
-
     const indices = [_]u8{
         0, 3, 1,
         0, 4, 3,
@@ -41,7 +41,7 @@ const hexagon_mesh = struct {
         position: Position,
         color: Color,
 
-        const Position = [2]f32;
+        const Position = cartesianCoordinate;
         const Color = [3]f32;
     };
 };
@@ -57,7 +57,7 @@ pub fn main() !void {
 
     // Create our window, specifying that we want to use OpenGL.
     const window = glfw.Window.create(640, 480, "mach-glfw + OpenGL", null, null, .{
-        .samples = 4,
+        .samples = 0,
         .context_version_major = gl.info.version_major,
         .context_version_minor = gl.info.version_minor,
         .opengl_profile = .opengl_core_profile,
@@ -149,8 +149,8 @@ pub fn main() !void {
     defer gl.DeleteProgram(program);
 
     const framebuffer_size_uniform = gl.GetUniformLocation(program, "u_FramebufferSize");
-    const angle_uniform = gl.GetUniformLocation(program, "u_Angle");
-    const verplaatsen = gl.GetUniformLocation(program, "u_verplaatsen");
+    const hexagonPosition_uniform = gl.GetUniformLocation(program, "u_hexagonPosition");
+    // const angle_uniform = gl.GetUniformLocation(program, "u_Angle");
 
     // Vertex Array Object (VAO), remembers instructions for how vertex data is laid out in memory.
     // Using VAOs is strictly required in modern OpenGL.
@@ -182,8 +182,8 @@ pub fn main() !void {
             // Upload vertex data to the VBO.
             gl.BufferData(
                 gl.ARRAY_BUFFER,
-                @sizeOf(@TypeOf(hexagon_mesh.vertices)),
-                &hexagon_mesh.vertices,
+                @sizeOf(@TypeOf(hexagonMesh.vertices)),
+                &hexagonMesh.vertices,
                 gl.STATIC_DRAW,
             );
 
@@ -192,11 +192,11 @@ pub fn main() !void {
             gl.EnableVertexAttribArray(position_attrib);
             gl.VertexAttribPointer(
                 position_attrib,
-                @typeInfo(hexagon_mesh.Vertex.Position).Array.len,
+                @typeInfo(hexagonMesh.Vertex.Position).Array.len,
                 gl.FLOAT,
                 gl.FALSE,
-                @sizeOf(hexagon_mesh.Vertex),
-                @offsetOf(hexagon_mesh.Vertex, "position"),
+                @sizeOf(hexagonMesh.Vertex),
+                @offsetOf(hexagonMesh.Vertex, "position"),
             );
 
             // Ditto for vertex colors.
@@ -204,11 +204,11 @@ pub fn main() !void {
             gl.EnableVertexAttribArray(color_attrib);
             gl.VertexAttribPointer(
                 color_attrib,
-                @typeInfo(hexagon_mesh.Vertex.Color).Array.len,
+                @typeInfo(hexagonMesh.Vertex.Color).Array.len,
                 gl.FLOAT,
                 gl.FALSE,
-                @sizeOf(hexagon_mesh.Vertex),
-                @offsetOf(hexagon_mesh.Vertex, "color"),
+                @sizeOf(hexagonMesh.Vertex),
+                @offsetOf(hexagonMesh.Vertex, "color"),
             );
         }
 
@@ -216,21 +216,40 @@ pub fn main() !void {
         gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo);
         gl.BufferData(
             gl.ELEMENT_ARRAY_BUFFER,
-            @sizeOf(@TypeOf(hexagon_mesh.indices)),
-            &hexagon_mesh.indices,
+            @sizeOf(@TypeOf(hexagonMesh.indices)),
+            &hexagonMesh.indices,
             gl.STATIC_DRAW,
         );
     }
 
-    var timer = try std.time.Timer.start();
+    // var timer = try std.time.Timer.start();
 
     main_loop: while (true) {
         glfw.pollEvents();
+        var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+        const allocator = gpa.allocator();
+
+        var list = try PositionArray.init(allocator);
+        defer list.deinit();
+
+        for (0..10) |i| {
+            try list.add(.{ @floatFromInt(i), @floatFromInt(i) });
+        }
+
+        std.debug.print("{any}\n", .{list.items[0..list.NumberOfElem]});
+
+        const hexagonPositionArray: [3]cartesianCoordinate = .{ .{ 0.0, 0.0 }, .{ 1.0, 2.0 }, .{ -1.0, 0.0 } };
 
         // Exit the main loop if the user is trying to close the window.
         if (window.shouldClose()) break :main_loop;
 
         {
+            // Rotate the hexagon clockwise at a rate of one complete turn per minute.
+            // _ = @as(f32, @floatFromInt(timer.read())) / std.time.ns_per_s;
+            // const seconds = @as(f32, @floatFromInt(timer.read())) / std.time.ns_per_s;
+            // gl.Uniform1f(angle_uniform, seconds / 60 * -std.math.tau);
+            // gl.Uniform1f(angle_uniform, 0);
+
             // Clear the screen to white.
             gl.ClearColor(1, 1, 1, 1);
             gl.Clear(gl.COLOR_BUFFER_BIT);
@@ -238,27 +257,65 @@ pub fn main() !void {
             gl.UseProgram(program);
             defer gl.UseProgram(0);
 
+            gl.BindVertexArray(vao);
+            defer gl.BindVertexArray(0);
+
             // Make sure any changes to the window's size are reflected.
             const framebuffer_size = window.getFramebufferSize();
             gl.Viewport(0, 0, @intCast(framebuffer_size.width), @intCast(framebuffer_size.height));
             gl.Uniform2f(framebuffer_size_uniform, @floatFromInt(framebuffer_size.width), @floatFromInt(framebuffer_size.height));
 
-            // Rotate the hexagon clockwise at a rate of one complete turn per minute.
-            _ = @as(f32, @floatFromInt(timer.read())) / std.time.ns_per_s;
-            // const seconds = @as(f32, @floatFromInt(timer.read())) / std.time.ns_per_s;
-            // gl.Uniform1f(angle_uniform, seconds / 60 * -std.math.tau);
-            gl.Uniform1f(angle_uniform, 0);
-
-            gl.BindVertexArray(vao);
-            defer gl.BindVertexArray(0);
-
-            // Draw the hexagon!
-            gl.Uniform1f(verplaatsen, 0);
-            gl.DrawElements(gl.TRIANGLES, hexagon_mesh.indices.len, gl.UNSIGNED_BYTE, 0);
-            gl.Uniform1f(verplaatsen, 2);
-            gl.DrawElements(gl.TRIANGLES, hexagon_mesh.indices.len, gl.UNSIGNED_BYTE, 0);
+            for (hexagonPositionArray) |hexagonPosition| {
+                gl.Uniform2f(hexagonPosition_uniform, hexagonPosition[0], hexagonPosition[1]);
+                gl.DrawElements(gl.TRIANGLES, hexagonMesh.indices.len, gl.UNSIGNED_BYTE, 0);
+            }
         }
 
         window.swapBuffers();
     }
 }
+
+pub const PositionArray = struct {
+    NumberOfElem: usize,
+    items: [][2]f64,
+    allocator: Allocator,
+
+    fn init(allocator: Allocator) !PositionArray {
+        return .{
+            .NumberOfElem = 0,
+            .allocator = allocator,
+            .items = try allocator.alloc([2]f64, 4),
+        };
+    }
+
+    fn deinit(self: PositionArray) void {
+        self.allocator.free(self.items);
+    }
+
+    fn add(self: *PositionArray, value: [2]f64) !void {
+        const numberOfElem = self.NumberOfElem;
+        const len = self.items.len;
+
+        if (numberOfElem == len) {
+            // we've run out of space
+            // create a new slice that's twice as large
+            var larger = try self.allocator.alloc([2]f64, len * 2);
+
+            // copy the items we previously added to our new space
+            @memcpy(larger[0..len], self.items);
+            self.allocator.free(self.items);
+            self.items = larger;
+        }
+
+        self.items[numberOfElem] = value;
+        self.NumberOfElem = numberOfElem + 1;
+    }
+};
+
+// fn drawHexagon(allocator, positionX, positionY){
+
+// }
+
+// fn hexagonalCoordinatesToCartesian(): = {
+
+// }
