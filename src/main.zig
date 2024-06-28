@@ -222,27 +222,24 @@ pub fn main() !void {
         );
     }
 
-    // var timer = try std.time.Timer.start();
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const allocator = gpa.allocator();
+    var hexagonPositionArray = try PositionArray.init(allocator);
+    defer hexagonPositionArray.deinit();
 
     main_loop: while (true) {
         glfw.pollEvents();
-        var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-        const allocator = gpa.allocator();
 
-        var list = try PositionArray.init(allocator);
-        defer list.deinit();
+        // defer list.deinit();
 
-        for (0..10) |i| {
-            try list.add(.{ @floatFromInt(i), @floatFromInt(i) });
-        }
+        try hexagonPositionArray.add(.{ @as(f32, @floatFromInt(@as(i32, (@intCast(hexagonPositionArray.NumberOfElem))))) / 100.0, @floatFromInt(1) });
 
-        std.debug.print("{any}\n", .{list.items[0..list.NumberOfElem]});
+        // std.debug.print("{any}\n", .{positionArray.items[0..positionArray.NumberOfElem]});
 
-        const hexagonPositionArray: [3]cartesianCoordinate = .{ .{ 0.0, 0.0 }, .{ 1.0, 2.0 }, .{ -1.0, 0.0 } };
+        // const hexagonPositionArray: [3]cartesianCoordinate = .{ .{ 0.0, 0.0 }, .{ 1.0, 2.0 }, .{ -1.0, 0.0 } };
 
         // Exit the main loop if the user is trying to close the window.
         if (window.shouldClose()) break :main_loop;
-
         {
             // Rotate the hexagon clockwise at a rate of one complete turn per minute.
             // _ = @as(f32, @floatFromInt(timer.read())) / std.time.ns_per_s;
@@ -265,7 +262,7 @@ pub fn main() !void {
             gl.Viewport(0, 0, @intCast(framebuffer_size.width), @intCast(framebuffer_size.height));
             gl.Uniform2f(framebuffer_size_uniform, @floatFromInt(framebuffer_size.width), @floatFromInt(framebuffer_size.height));
 
-            for (hexagonPositionArray) |hexagonPosition| {
+            for (hexagonPositionArray.items) |hexagonPosition| {
                 gl.Uniform2f(hexagonPosition_uniform, hexagonPosition[0], hexagonPosition[1]);
                 gl.DrawElements(gl.TRIANGLES, hexagonMesh.indices.len, gl.UNSIGNED_BYTE, 0);
             }
@@ -277,14 +274,14 @@ pub fn main() !void {
 
 pub const PositionArray = struct {
     NumberOfElem: usize,
-    items: [][2]f64,
+    items: [][2]f32,
     allocator: Allocator,
 
     fn init(allocator: Allocator) !PositionArray {
         return .{
             .NumberOfElem = 0,
             .allocator = allocator,
-            .items = try allocator.alloc([2]f64, 4),
+            .items = try allocator.alloc([2]f32, 4),
         };
     }
 
@@ -292,14 +289,14 @@ pub const PositionArray = struct {
         self.allocator.free(self.items);
     }
 
-    fn add(self: *PositionArray, value: [2]f64) !void {
+    fn add(self: *PositionArray, value: [2]f32) !void {
         const numberOfElem = self.NumberOfElem;
         const len = self.items.len;
 
         if (numberOfElem == len) {
             // we've run out of space
             // create a new slice that's twice as large
-            var larger = try self.allocator.alloc([2]f64, len * 2);
+            var larger = try self.allocator.alloc([2]f32, len * 2);
 
             // copy the items we previously added to our new space
             @memcpy(larger[0..len], self.items);
