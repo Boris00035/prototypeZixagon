@@ -47,6 +47,9 @@ const hexagonMesh = struct {
 };
 
 pub fn main() !void {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const allocator = gpa.allocator();
+
     glfw.setErrorCallback(logGLFWError);
 
     if (!glfw.init(.{})) {
@@ -222,8 +225,6 @@ pub fn main() !void {
         );
     }
 
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    const allocator = gpa.allocator();
     var hexagonPositionArray = try PositionArray.init(allocator);
     defer hexagonPositionArray.deinit();
 
@@ -234,19 +235,9 @@ pub fn main() !void {
 
         try hexagonPositionArray.add(.{ @as(f32, @floatFromInt(@as(i32, (@intCast(hexagonPositionArray.NumberOfElem))))) / 100.0, @floatFromInt(1) });
 
-        // std.debug.print("{any}\n", .{positionArray.items[0..positionArray.NumberOfElem]});
-
-        // const hexagonPositionArray: [3]cartesianCoordinate = .{ .{ 0.0, 0.0 }, .{ 1.0, 2.0 }, .{ -1.0, 0.0 } };
-
         // Exit the main loop if the user is trying to close the window.
         if (window.shouldClose()) break :main_loop;
         {
-            // Rotate the hexagon clockwise at a rate of one complete turn per minute.
-            // _ = @as(f32, @floatFromInt(timer.read())) / std.time.ns_per_s;
-            // const seconds = @as(f32, @floatFromInt(timer.read())) / std.time.ns_per_s;
-            // gl.Uniform1f(angle_uniform, seconds / 60 * -std.math.tau);
-            // gl.Uniform1f(angle_uniform, 0);
-
             // Clear the screen to white.
             gl.ClearColor(1, 1, 1, 1);
             gl.Clear(gl.COLOR_BUFFER_BIT);
@@ -308,11 +299,3 @@ pub const PositionArray = struct {
         self.NumberOfElem = numberOfElem + 1;
     }
 };
-
-// fn drawHexagon(allocator, positionX, positionY){
-
-// }
-
-// fn hexagonalCoordinatesToCartesian(): = {
-
-// }
