@@ -3,4 +3,4 @@ Download the necessary zig compiler required by Mach: [mach verified compilers](
 
 ## Todo:
 - [ ] Use glElementsInstanced and uniform array for the positions
-- [ ] Place shader files as seperate files 
+- [ ] Use something like a reallocator to replace the custom implementation of a growable array 

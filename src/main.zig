@@ -231,8 +231,6 @@ pub fn main() !void {
     main_loop: while (true) {
         glfw.pollEvents();
 
-        // defer list.deinit();
-
         try hexagonPositionArray.add(.{ @as(f32, @floatFromInt(@as(i32, (@intCast(hexagonPositionArray.NumberOfElem))))) / 100.0, @floatFromInt(1) });
 
         // Exit the main loop if the user is trying to close the window.
