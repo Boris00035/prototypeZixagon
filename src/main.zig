@@ -19,7 +19,7 @@ const cartesianCoordinate = [2]f32;
 // HECS coordinate system
 const hexagonalCordinate = [3]f32;
 
-const Vertex = struct {
+const Vertex = extern struct {
     position: Position,
     color: Color,
 
@@ -33,9 +33,13 @@ const PolygonMesh = struct {
     associatedVao: c_uint,
 };
 
+// var verticesTest =
+
+// var indicesTest =
+
 const hexagonMesh = PolygonMesh{
     // zig fmt: off
-    .vertices = &[_]Vertex {
+    .vertices = &[_]Vertex{
         .{ .position = .{ -1, 0 }, .color = .{ 0, 0, 1 } },
         .{ .position = .{ -0.5, -0.866 }, .color = .{ 0, 0, 1 } },
         .{ .position = .{ -0.5, 0.866 }, .color = .{ 0, 0, 1 } },
@@ -50,6 +54,7 @@ const hexagonMesh = PolygonMesh{
         0, 2, 4,
         3, 4, 5,
     },
+
     .associatedVao = 1,
 };
 
@@ -192,8 +197,8 @@ pub fn main() !void {
             // Upload vertex data to the VBO.
             gl.BufferData(
                 gl.ARRAY_BUFFER,
-                @sizeOf(@TypeOf(hexagonMesh.vertices)),
-                @ptrCast(&hexagonMesh.vertices),
+                @sizeOf(Vertex) * hexagonMesh.vertices.len,
+                @ptrCast(hexagonMesh.vertices),
                 gl.STATIC_DRAW,
             );
 
@@ -226,8 +231,8 @@ pub fn main() !void {
         gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo);
         gl.BufferData(
             gl.ELEMENT_ARRAY_BUFFER,
-            @sizeOf(@TypeOf(hexagonMesh.indices)),
-            @ptrCast(&hexagonMesh.indices),
+            @sizeOf(u8) * hexagonMesh.indices.len,
+            @ptrCast(hexagonMesh.indices),
             gl.STATIC_DRAW,
         );
     }
