@@ -58,31 +58,9 @@ const Vertex = extern struct {
 const PolygonMesh = struct {
     vertices: []const Vertex, // will become the vbo
     indices: []const i8, // will become the associated ibo
-    vertexShader: [:0]const u8,
-    fragmentShader: [:0]const u8,
-    // associatedVao: c_uint,
-};
-
-const hexagonMesh = PolygonMesh{
-    // zig fmt: off
-    .vertices = &[_]Vertex{
-        .{ .position = .{ -1, 0 }, .color = .{ 0, 0, 1 } },
-        .{ .position = .{ -0.5, -0.866 }, .color = .{ 0, 0, 1 } },
-        .{ .position = .{ -0.5, 0.866 }, .color = .{ 0, 0, 1 } },
-        .{ .position = .{ 0.5, -0.866 }, .color = .{ 0, 0, 1 } },
-        .{ .position = .{ 0.5, 0.866 }, .color = .{ 0, 0, 1 } },
-        .{ .position = .{ 1, 0 }, .color = .{ 0, 0, 1 } },
-    },
-    // zig fmt: on
-    .indices = &[_]i8{
-        0, 3, 1,
-        0, 4, 3,
-        0, 2, 4,
-        3, 4, 5,
-    },
-
-    .vertexShader = @embedFile("shaders/SimpleVertexShader.vert"),
-    .fragmentShader = @embedFile("shaders/SimpleFragmentShader.frag"),
+    program: c_uint,
+    VBO: c_uint,
+    IBO: c_uint,
 };
 
 fn logGLFWError(error_code: glfw.ErrorCode, description: [:0]const u8) void {
@@ -90,7 +68,7 @@ fn logGLFWError(error_code: glfw.ErrorCode, description: [:0]const u8) void {
 }
 
 // This name is maybe not quite right
-fn initializeProgram(polygonMesh: PolygonMesh) !c_uint {
+fn initializeProgram(vertexShader: [:0]const u8, fragmentShader: [:0]const u8) !c_uint {
     var success: c_int = undefined;
     var info_log_buf: [512:0]u8 = undefined;
 
@@ -103,8 +81,8 @@ fn initializeProgram(polygonMesh: PolygonMesh) !c_uint {
     gl.ShaderSource(
         vertex_shader,
         1,
-        (&polygonMesh.vertexShader.ptr)[0..1],
-        (&@as(c_int, @intCast(polygonMesh.vertexShader.len)))[0..1],
+        (&vertexShader.ptr)[0..1],
+        (&@as(c_int, @intCast(vertexShader.len)))[0..1],
     );
     gl.CompileShader(vertex_shader);
     gl.GetShaderiv(vertex_shader, gl.COMPILE_STATUS, &success);
@@ -121,8 +99,8 @@ fn initializeProgram(polygonMesh: PolygonMesh) !c_uint {
     gl.ShaderSource(
         fragment_shader,
         1,
-        (&polygonMesh.fragmentShader.ptr)[0..1],
-        (&@as(c_int, @intCast(polygonMesh.fragmentShader.len)))[0..1],
+        (&fragmentShader.ptr)[0..1],
+        (&@as(c_int, @intCast(fragmentShader.len)))[0..1],
     );
     gl.CompileShader(fragment_shader);
     gl.GetShaderiv(fragment_shader, gl.COMPILE_STATUS, &success);
@@ -150,7 +128,7 @@ fn initializeProgram(polygonMesh: PolygonMesh) !c_uint {
 }
 
 // In the future this function can be adapted to accept arrays for vbo and ibo, to bind multiple meshes to the VAO.
-fn bindMeshToVAO(program: c_uint, vao: c_uint, vbo: c_uint, ibo: c_uint, polygonMesh: PolygonMesh) void {
+fn bindMeshToVAO(vao: c_uint, polygonMesh: PolygonMesh) void {
     // Make our VAO the current global VAO, but unbind it when we're done so we don't end up
     // inadvertently modifying it later.
     gl.BindVertexArray(vao);
@@ -158,7 +136,7 @@ fn bindMeshToVAO(program: c_uint, vao: c_uint, vbo: c_uint, ibo: c_uint, polygon
 
     {
         // Make our VBO the current global VBO and unbind it when we're done.
-        gl.BindBuffer(gl.ARRAY_BUFFER, vbo);
+        gl.BindBuffer(gl.ARRAY_BUFFER, polygonMesh.VBO);
         defer gl.BindBuffer(gl.ARRAY_BUFFER, 0);
 
         // Upload vertex data to the VBO.
@@ -170,7 +148,7 @@ fn bindMeshToVAO(program: c_uint, vao: c_uint, vbo: c_uint, ibo: c_uint, polygon
         );
 
         // Instruct the VAO how vertex position data is laid out in memory.
-        const position_attrib: c_uint = @intCast(gl.GetAttribLocation(program, "a_Position"));
+        const position_attrib: c_uint = @intCast(gl.GetAttribLocation(polygonMesh.program, "a_Position"));
         gl.EnableVertexAttribArray(position_attrib);
         gl.VertexAttribPointer(
             position_attrib,
@@ -182,7 +160,7 @@ fn bindMeshToVAO(program: c_uint, vao: c_uint, vbo: c_uint, ibo: c_uint, polygon
         );
 
         // Ditto for vertex colors.
-        const color_attrib: c_uint = @intCast(gl.GetAttribLocation(program, "a_Color"));
+        const color_attrib: c_uint = @intCast(gl.GetAttribLocation(polygonMesh.program, "a_Color"));
         gl.EnableVertexAttribArray(color_attrib);
         gl.VertexAttribPointer(
             color_attrib,
@@ -195,7 +173,7 @@ fn bindMeshToVAO(program: c_uint, vao: c_uint, vbo: c_uint, ibo: c_uint, polygon
     }
 
     // Instruct the VAO to use our IBO, then upload index data to the IBO.
-    gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo);
+    gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, polygonMesh.IBO);
     gl.BufferData(
         gl.ELEMENT_ARRAY_BUFFER,
         @sizeOf(u8) * @as(isize, @intCast(polygonMesh.indices.len)),
@@ -249,21 +227,11 @@ pub fn main() !void {
     gl.makeProcTableCurrent(&gl_procs);
     defer gl.makeProcTableCurrent(null);
 
-    const program = try initializeProgram(hexagonMesh);
-    defer gl.DeleteProgram(program);
+    const vertexShader = @embedFile("shaders/SimpleVertexShader.vert");
+    const fragmentShader = @embedFile("shaders/SimpleFragmentShader.frag");
 
-    // This + the uniforms id like to see be taken care of in the hexagonMesh struct
-    var hexagonPositionArray = try PositionArray.init(allocator);
-    defer hexagonPositionArray.deinit();
-
-    const framebuffer_size_uniform = gl.GetUniformLocation(program, "u_FramebufferSize");
-    const hexagonPosition_uniform = gl.GetUniformLocation(program, "u_hexagonPosition");
-    const angle_uniform = gl.GetUniformLocation(program, "u_Angle");
-
-    // Vertex Array Object (VAO), remembers instructions for how vertex data is laid out in memory.
-    var VAO: c_uint = undefined;
-    gl.GenVertexArrays(1, (&VAO)[0..1]);
-    defer gl.DeleteVertexArrays(1, (&VAO)[0..1]);
+    const polygonProgram = try initializeProgram(vertexShader, fragmentShader);
+    defer gl.DeleteProgram(polygonProgram);
 
     // Vertex Buffer Object (VBO), holds vertex data.
     var hexagonVBO: c_uint = undefined;
@@ -275,19 +243,53 @@ pub fn main() !void {
     gl.GenBuffers(1, (&hexagonIBO)[0..1]);
     defer gl.DeleteBuffers(1, (&hexagonIBO)[0..1]);
 
-    bindMeshToVAO(program, VAO, hexagonVBO, hexagonIBO, hexagonMesh);
+    const hexagonMesh = PolygonMesh{
+        // zig fmt: off
+        .vertices = &[_]Vertex{
+            .{ .position = .{ -1, 0 }, .color = .{ 0, 0, 1 } },
+            .{ .position = .{ -0.5, -0.866 }, .color = .{ 0, 0, 1 } },
+            .{ .position = .{ -0.5, 0.866 }, .color = .{ 0, 0, 1 } },
+            .{ .position = .{ 0.5, -0.866 }, .color = .{ 0, 0, 1 } },
+            .{ .position = .{ 0.5, 0.866 }, .color = .{ 0, 0, 1 } },
+            .{ .position = .{ 1, 0 }, .color = .{ 0, 0, 1 } },
+        },
+        // zig fmt: on
+        .indices = &[_]i8{
+            0, 3, 1,
+            0, 4, 3,
+            0, 2, 4,
+            3, 4, 5,
+        },
+        .program = polygonProgram,
+        .VBO = hexagonVBO,
+        .IBO = hexagonIBO,
+    };
+
+    // Vertex Array Object (VAO), remembers instructions for how vertex data is laid out in memory.
+    var VAO: c_uint = undefined;
+    gl.GenVertexArrays(1, (&VAO)[0..1]);
+    defer gl.DeleteVertexArrays(1, (&VAO)[0..1]);
+
+    bindMeshToVAO(VAO, hexagonMesh);
+
+    // This + the uniforms id like to see be taken care of in the hexagonMesh struct
+    var hexagonPositionArray = try PositionArray.init(allocator);
+    defer hexagonPositionArray.deinit();
+
+    const framebuffer_size_uniform = gl.GetUniformLocation(polygonProgram, "u_FramebufferSize");
+    const hexagonPosition_uniform = gl.GetUniformLocation(polygonProgram, "u_hexagonPosition");
+    const angle_uniform = gl.GetUniformLocation(polygonProgram, "u_Angle");
 
     // because we have only one VAO we can bind this outside the main loop.
     gl.BindVertexArray(VAO);
     defer gl.BindVertexArray(0);
 
     // Same thing here, we only use one program so we can just leave this binded outside the main loop.
-    gl.UseProgram(program);
+    gl.UseProgram(hexagonMesh.program);
     defer gl.UseProgram(0);
 
     main_loop: while (true) {
         glfw.pollEvents();
-
         // try hexagonPositionArray.add(.{ @as(f32, @floatFromInt(@as(i32, (@intCast(hexagonPositionArray.NumberOfElem))))) / 100.0, @floatFromInt(1) });
 
         if (window.shouldClose()) break :main_loop;
@@ -303,7 +305,7 @@ pub fn main() !void {
             // for (hexagonPositionArray.items) |hexagonPosition| {
             gl.Uniform2f(hexagonPosition_uniform, 0.5, 0.0);
             gl.Uniform1f(angle_uniform, 0.1);
-            gl.DrawElements(gl.TRIANGLES, hexagonMesh.indices.len, gl.UNSIGNED_BYTE, 0);
+            gl.DrawElements(gl.TRIANGLES, @intCast(hexagonMesh.indices.len), gl.UNSIGNED_BYTE, 0);
             // }
         }
 
