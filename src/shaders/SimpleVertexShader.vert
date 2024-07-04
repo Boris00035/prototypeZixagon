@@ -4,6 +4,7 @@
 uniform vec2 u_FramebufferSize;
 uniform vec2 u_hexagonPosition;
 uniform float u_Angle; 
+uniform float u_sizeScale;
 
 // Vertex position and color as defined in the mesh.
 in vec4 a_Position;
@@ -18,8 +19,8 @@ void main() {
     float scaleY = min(u_FramebufferSize.x / u_FramebufferSize.y, 1) / 2;
 
     gl_Position = vec4(
-        (a_Position.x * cos(u_Angle) - a_Position.y * sin(u_Angle) + u_hexagonPosition.x) * scaleX,
-        (a_Position.x * sin(u_Angle) + a_Position.y * cos(u_Angle) + u_hexagonPosition.x) * scaleY,
+        (a_Position.x * cos(u_Angle) - a_Position.y * sin(u_Angle) + u_hexagonPosition.x) * scaleX * u_sizeScale,
+        (a_Position.x * sin(u_Angle) + a_Position.y * cos(u_Angle) + u_hexagonPosition.x) * scaleY * u_sizeScale,
         a_Position.zw);
 
     // Pass the vertex's color to the fragment shader.

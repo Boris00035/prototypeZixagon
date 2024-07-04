@@ -279,6 +279,7 @@ pub fn main() !void {
     const framebuffer_size_uniform = gl.GetUniformLocation(polygonProgram, "u_FramebufferSize");
     const hexagonPosition_uniform = gl.GetUniformLocation(polygonProgram, "u_hexagonPosition");
     const angle_uniform = gl.GetUniformLocation(polygonProgram, "u_Angle");
+    const sizeScale_uniform = gl.GetUniformLocation(polygonProgram, "u_sizeScale");
 
     // because we have only one VAO we can bind this outside the main loop.
     gl.BindVertexArray(VAO);
@@ -305,6 +306,7 @@ pub fn main() !void {
             // for (hexagonPositionArray.items) |hexagonPosition| {
             gl.Uniform2f(hexagonPosition_uniform, 0.5, 0.0);
             gl.Uniform1f(angle_uniform, 0.1);
+            gl.Uniform1f(sizeScale_uniform, 2.0);
             gl.DrawElements(gl.TRIANGLES, @intCast(hexagonMesh.indices.len), gl.UNSIGNED_BYTE, 0);
             // }
         }
